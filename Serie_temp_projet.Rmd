@@ -1,0 +1,132 @@
+---
+title: "Projet final, Séries temporelles 2020-2021"
+author: "Hamady Cissé"
+date: "05/04/2022"
+output: html_document
+---
+
+
+
+Voici les library dont je souhaite utiliser afin d'analyser ma serie temporelle au mieux :
+
+```{r}
+
+library(forecast)
+library(ggplot2)
+library("GGally")
+library(timeSeries)
+```
+#Premiere analyse 
+
+Dans notre premiere analyse nous allons importer les données afin de voir à quoi cette serie :
+```{r}
+SerieVector<- scan('C:/Users/hamad/Downloads/serie_06.dat')
+
+```
+
+L'importation des données de cette serie vont nous permettre de la transformer en serie temporelle :
+```{r}
+SerieTemp<-ts(SerieVector,frequency = 12,start = c(2002,12),end = c(2019,4))
+```
+
+Regardons maintenant à quoi ressemble notre serie temporelle :
+```{r,fig.show="hold", out.width="50%}
+par(mar=c(4,4,.1,.1))
+plot.ts(SerieTemp,main='Chronogramme de la série Temporelle',xlab='temps')
+monthplot(SerieTemp,main='month plot de la série Temporelle',xlab='mois')
+```
+
+```{r}
+acf(SerieTemp)
+```
+```{r}
+ q=12/2 #periode=12
+ l=length(SerieVector)
+ SerieTendance=rep(NA,l)
+for(t in (1+q):(l-q)){ #cas longeur p´eriode pair
+ SerieTendance[t]= 1/12 * (0.5*SerieVector[t-q]+sum(SerieVector[(t-q+1):(t+q-1)])+0.5*SerieVector[t+q]) }
+ SerieTendance=ts(SerieTendance,start=c(2002,12),frequency=12) #necessaire pour pouvoir comparer graphiques
+ Xsanstendance=SerieTemp-SerieTendance #serie sans tendance
+ Xsanstendance
+```
+```{r}
+ W=rep(NA,12)
+ p=floor(l/12)
+ for(k in 1:12) W[k]=mean(Xsanstendance[((1:p)-1)*12+k],na.rm=TRUE)
+ Sh=W-mean(W)
+ Sh=c(rep(Sh,p))
+ Sh=ts(Sh,start=c(2002,12),frequency=12)
+ XsansSaisonalite = SerieTemp-Sh
+ XsansSaisonalite
+```
+```{r}
+Residu=SerieTemp-SerieTendance-Sh
+
+```
+
+
+```{r}
+par(mfrow=c(1,2))
+plot(decompose(SerieTemp)$trend)
+plot(SerieTendance)
+```
+
+
+
+
+```{r}
+par(mfrow=c(1,2))
+plot(decompose(SerieTemp)$seasonal)
+plot(Sh)
+```
+
+
+
+
+```{r}
+par(mfrow=c(1,2))
+plot(decompose(SerieTemp)$random)
+plot(Residu)
+```
+
+
+
+```{r}
+Residu=Residu[-which(is.na(Residu))]
+acf(Residu)
+```
+
+
+
+```{r}
+pacf(Residu)
+```
+
+
+
+```{r}
+Residu=ts(Residu,frequency = 12,start=c(2002,12),end=c(2019,4))
+Residudebut=window(Residu,start=c(2014,12),end=c(2018,10))
+Residufin=window(Residu,start=c(2018,11),end=c(2019,4))
+par(mfrow=c(2,1))
+```
+
+
+
+
+```{r}
+mod1=arima(Residudebut,order=c(3,0,4)) # c(3,0,4)
+#acf(mod1$residuals)
+confint(mod1)
+```
+
+
+
+```{r}
+confint(mod1)
+pred=predict(mod1,n.ahead = 5)
+plot.ts(Residudebut,,xlim=c(2014.1,2019.4),type='o')
+lines(Residufin,col='red',type='o')
+lines(pred$pred,col="green",type='o')
+```
+
